@@ -105,6 +105,10 @@ cd Niri-glass
 ```
 This will create a new wayland session. You will be able to choose in your login manager.
 
+niri-glass gets its own config, `~/.config/niri/glass.kdl`. The script creates it (once, never
+overwrites) with `include "config.kdl"` plus the example below, so your normal niri config
+stays loadable by stock niri, which does not understand `liquid-glass`.
+
 ### Manual steps
 
 1. Copy files to your niri `src/` directory

@@ -35,6 +35,8 @@ rm -f "$HOME/.local/share/systemd/user/niri-glass.service"
 echo "Reloading systemd user units..."
 systemctl --user daemon-reload
 
+echo "Left ~/.config/niri/glass.kdl in place; delete it yourself if you no longer want it."
+
 cat <<'EOF'
 
 Done.

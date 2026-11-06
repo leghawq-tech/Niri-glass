@@ -38,7 +38,7 @@ echo "Installing /usr/local/bin/niri-glass-session..."
 sudo install -m 755 /usr/bin/niri-session /usr/local/bin/niri-glass-session
 
 sudo sed -i \
-  -e 's|niri --session|niri-glass --session|g' \
+  -e 's|niri --session|niri-glass --session --config "$HOME/.config/niri/glass.kdl"|g' \
   -e 's|niri\.service|niri-glass.service|g' \
   /usr/local/bin/niri-glass-session
 
@@ -46,10 +46,50 @@ echo "Installing ~/.local/share/systemd/user/niri-glass.service (copy of niri.se
 mkdir -p "$HOME/.local/share/systemd/user"
 install -m 644 /usr/lib/systemd/user/niri.service "$HOME/.local/share/systemd/user/niri-glass.service"
 sed -i \
-  -e 's|niri --session|niri-glass --session|g' \
+  -e 's|niri --session|niri-glass --session --config %h/.config/niri/glass.kdl|g' \
   -e 's|^Description=.*|Description=Niri (Liquid Glass) — scrollable-tiling Wayland compositor|' \
   "$HOME/.local/share/systemd/user/niri-glass.service"
 systemctl --user daemon-reload
+
+# Own config for niri-glass: stock niri can't parse liquid-glass, so it stays out of config.kdl.
+GLASS_CONFIG="$HOME/.config/niri/glass.kdl"
+if [ -e "$GLASS_CONFIG" ]; then
+  echo "Keeping existing $GLASS_CONFIG"
+else
+  echo "Creating $GLASS_CONFIG (includes your config.kdl, adds liquid glass)..."
+  mkdir -p "$HOME/.config/niri"
+  cat >"$GLASS_CONFIG" <<'EOF'
+// Config for niri-glass only. Your normal niri config is pulled in first,
+// then the liquid-glass rule below is added on top.
+include "config.kdl"
+
+window-rule {
+    match app-id=".*"
+    background-effect {
+        blur true
+        xray true
+        liquid-glass {
+            refraction-strength 3.0
+            power-factor 10
+            refraction-power 1.0
+            glow-weight 0.0001
+            edge-lighting 0.2
+            saturation 0.9
+            vibrancy 0.2
+            adaptive-dim 0.2
+            adaptive-boost 0.2
+            physical-refraction 0
+            lens-distortion 0
+            fringing 0
+        }
+    }
+}
+EOF
+fi
+if [ ! -e "$HOME/.config/niri/config.kdl" ]; then
+  echo "Warning: ~/.config/niri/config.kdl does not exist; glass.kdl includes it."
+  echo "Start stock niri once to create it, or remove the include line from glass.kdl."
+fi
 
 # Wayland session entry — used by login managers. Points at the session wrapper
 echo "Registering Wayland session entry..."
@@ -68,6 +108,9 @@ Done! Pick which version to launch at session start:
 
   exec /usr/local/bin/niri-glass-session   # liquid-glass version
   exec /usr/bin/niri-session             # pacman version
+
+niri-glass reads ~/.config/niri/glass.kdl (your config.kdl + liquid glass).
+Tweak the glass there; stock niri keeps using config.kdl untouched.
 
 
 If you dont need liquid-glass anymore run:
