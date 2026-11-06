@@ -1,131 +1,70 @@
-# Liquid Glass Effect for Niri
+# Liquid Glass for Niri
 
-**[English](README.md)** | **[中文](README.zh-CN.md)**
+A liquid-glass / refraction background effect for the [niri](https://github.com/niri-wm/niri)
+Wayland compositor. Fork of [zaroutt/Niri-glass](https://github.com/zaroutt/Niri-glass); shader
+based on [kwin-effects-glass](https://github.com/4v3ngR/kwin-effects-glass).
 
-## Examples
+<img width="1920" height="1080" alt="Liquid glass windows on niri" src="https://github.com/user-attachments/assets/a10b40c7-b147-4dfa-8208-28ebb4003cfc" />
 
-1.
+Built against niri 26.04 (rev `49fc611`). Other niri versions will not build.
 
-  <img width="1920" height="1080" alt="Screenshot from 2026-07-02 00-06-33" src="https://github.com/user-attachments/assets/a10b40c7-b147-4dfa-8208-28ebb4003cfc" />
+## Changes in this fork
 
-1.
+- **No more log flood.** Removed two debug warnings that were written every frame for every glass window.
+- **`edge-padding` works.** It used to cut a see-through band into the window edges.
+- **Xray mode refracts around the window, not the screen.** Refraction direction, lens dome and
+  offset size were measured against the whole screen. With xray on, glass now looks the same wherever
+  the window is. It may look weaker than before: raise `refraction-strength` if so.
+- **Client-requested blur works again in xray mode.** It was being cut to the window rectangle.
+- **Removed 7 options that did nothing:** `refraction-a/b/c/d`, `glow-bias`, `glow-edge0/1`.
+  Delete them from your config, or it will fail to load.
+- **Own config file.** niri-glass reads `~/.config/niri/glass.kdl`, which includes your normal
+  `config.kdl`. Stock niri can't parse `liquid-glass`, so it stays out of your main config.
+- **`install.sh` checks the niri version** before copying files over it.
+- Internal cleanup: one shared list of shader values instead of four copies (−230 lines).
 
-<img width="1920" height="1080" alt="Screenshot from 2026-06-30 12-31-50" src="https://github.com/user-attachments/assets/8cad6485-b685-4bc9-b22e-8cf7801cd15a" />
+## Install
 
-1.
-
-<img width="1920" height="1080" alt="Screenshot from 2026-06-30 12-32-48" src="https://github.com/user-attachments/assets/fccc46f0-9cda-488b-b0e1-5939d36676cf" />
-
-1.
-
-<img width="1920" height="1080" alt="Screenshot from 2026-06-30 12-34-48" src="https://github.com/user-attachments/assets/ff3f0d17-3bf1-42e8-9660-e291189321f9" />
-
-1.
-
-<img width="1920" height="1080" alt="Screenshot from 2026-06-30 12-40-02" src="https://github.com/user-attachments/assets/eaeda5ef-1fe3-4e51-8466-10e461240021" />
-
-## Files
-
-### Shader
-
-- `src/render_helpers/shaders/clipped_surface.frag` - Main liquid glass effect shader (based on [kwin-effects-glass](https://github.com/4v3ngR/kwin-effects-glass))
-
-### Rust (rendering)
-
-- `src/render_helpers/liquid_glass.rs` - Liquid glass shader uniforms (names and values)
-- `src/render_helpers/background_effect.rs` - Liquid glass integration with background effect
-- `src/render_helpers/framebuffer_effect.rs` - Uniform passing to shader (windows)
-- `src/render_helpers/xray.rs` - Uniform passing to shader (xray)
-- `src/render_helpers/shaders/mod.rs` - Uniform registration during shader compilation
-- `src/render_helpers/mod.rs` - Module declaration for liquid_glass
-
-## How to Apply
-
-### Nix / NixOS (flake)
-
-This repo ships a flake that builds niri with the liquid-glass overlay applied
-on top of the matching upstream niri release (pinned to rev `49fc611`, niri
-26.04). No manual file copying or `install.sh` needed.
-
-Quick try-out (no install):
-
-```bash
-nix run github:zaroutt/Niri-glass          # run the compositor
-nix shell github:zaroutt/Niri-glass        # drop niri-glass into a shell
-nix develop github:zaroutt/Niri-glass      # dev shell (rust + niri build deps)
-nix build  github:zaroutt/Niri-glass       # build, result at ./result
-```
-
-NixOS (flake), reusing the upstream niri session/portal/polkit wiring:
-
-```nix
-{
-  inputs.niri-glass.url = "github:zaroutt/Niri-glass";
-
-  # in your nixosConfiguration modules:
-  imports = [ inputs.niri-glass.nixosModules.default ];
-  programs.niri-glass.enable = true;
-}
-```
-
-home-manager:
-
-```nix
-{
-  imports = [ inputs.niri-glass.homeManagerModules.default ];
-  programs.niri-glass = {
-    enable = true;
-    # optional: manage ~/.config/niri/config.kdl
-    config = builtins.readFile ./niri/config.kdl;
-  };
-}
-```
-
-Or just add the package via the overlay (`overlays.default` exposes
-`pkgs.niri-glass`) or reference `inputs.niri-glass.packages.<system>.niri-glass`
-directly anywhere a package is expected (e.g. `programs.niri.package`).
-
-> The flake is pinned to the exact niri revision these overlay files were
-> written against. If you bump the `niri` input, refresh the overlay files to
-> match or the build may fail to compile.
-
-### install.sh (non-Nix)
-
-Clone the official repo and this one and run the install script:
+### install.sh (any distro with niri installed)
 
 ```bash
 git clone https://github.com/niri-wm/niri
 git -C niri checkout 49fc6117fd6c043adaa2ead316b82db5ed735d36
-git clone https://github.com/zaroutt/Niri-glass
+git clone https://github.com/leghawq-tech/Niri-glass
 cd Niri-glass
-```
-
-```bash
 ./install.sh ../niri
 ```
-This will create a new wayland session. You will be able to choose in your login manager.
 
-niri-glass gets its own config, `~/.config/niri/glass.kdl`. The script creates it (once, never
-overwrites) with `include "config.kdl"` plus the example below, so your normal niri config
-stays loadable by stock niri, which does not understand `liquid-glass`.
+This adds a "Niri (Liquid Glass)" session to your login manager and creates
+`~/.config/niri/glass.kdl` (only if it doesn't exist yet). Remove it all with `./uninstall.sh`.
 
-### Manual steps
+### Nix
 
-1. Copy files to your niri `src/` directory
-2. Run `cargo build --release` in the niri source
-3. Copy `target/release/niri` to `/usr/local/bin/niri-glass` (requires sudo)
+```bash
+nix run github:leghawq-tech/Niri-glass      # try without installing
+```
+
+NixOS:
+
+```nix
+inputs.niri-glass.url = "github:leghawq-tech/Niri-glass";
+# in your modules:
+imports = [ inputs.niri-glass.nixosModules.default ];
+programs.niri-glass.enable = true;
+```
+
+A home-manager module (`homeManagerModules.default`) and an overlay (`pkgs.niri-glass`) are also
+available. Nix does not set up `glass.kdl`; put the `liquid-glass` rule in your niri config.
 
 ## Configuration
 
-### Example with all parameters
-
-
-
-In `config.kdl`:
+`~/.config/niri/glass.kdl`:
 
 ```kdl
+include "config.kdl"
+
 window-rule {
-    match app-id =".*"
+    match app-id=".*"
     background-effect {
         blur true
         xray true
@@ -142,57 +81,36 @@ window-rule {
             physical-refraction 0
             lens-distortion 0
             fringing 0
-
         }
     }
 }
 ```
 
-### Parameters for a frosted glass look
+For a frosted look: `saturation 0.9`, `vibrancy 0.2`, `adaptive-dim 0.25`, `adaptive-boost 0.25`.
 
-```kdl
-saturation 0.9
-vibrancy 0.2
-adaptive-dim 0.25
-adaptive-boost 0.25
-```
-
-<img width="462" height="276" alt="Screenshot from 2026-06-30 13-40-40" src="https://github.com/user-attachments/assets/ef2949f8-c8b7-4805-a2b5-7aaa87507525" />
-
-With all parameters set to 0 (except saturation, which is set to 1):
-
-<img width="462" height="276" alt="Screenshot from 2026-06-30 13-37-39" src="https://github.com/user-attachments/assets/991553ad-66d0-4a62-8519-8ce3b04bdcc0" /> ```
-
-### others
-
-- fringing:
-  this make rgb colors appear
-
-  <img width="243" height="63" alt="Screenshot from 2026-06-30 16-13-20" src="https://github.com/user-attachments/assets/56d589e5-ffa1-46e9-a58a-996d015070e9" />
-
-- edge-lightning
-
-  this make the wallpapers colors blend with the edges
-
-<img width="533" height="320" alt="Screenshot from 2026-06-30 16-18-04" src="https://github.com/user-attachments/assets/91d4b152-8bec-47dc-b4dd-6f10a30a441d" />
-
-<img width="531" height="329" alt="Screenshot from 2026-06-30 16-17-54" src="https://github.com/user-attachments/assets/c4ba4a55-a3cd-49b5-ae15-fdf9154650c4" />
-
-## More examples
-
-### Interaction with live wallpaper with shadows enabled
-
-https://github.com/user-attachments/assets/4fceeaaf-4ff1-4c4d-adcf-af52cd33a912
-
-### With xray set to false
-
-<img width="1920" height="1080" alt="Screenshot from 2026-07-22 20-58-17" src="https://github.com/user-attachments/assets/049102f2-d7c9-4d0b-8862-671c34c61d18" />
-
-
-
+| Option | Default | What it does |
+|---|---|---|
+| `refraction-strength` | 1.0 | How strongly the edges bend the background (0–100, 0 turns the effect off) |
+| `power-factor` | 3 | How sharply the bend falls off from the edge (1–10) |
+| `refraction-power` | 0.6 | Bevel intensity in physical mode |
+| `physical-refraction` | 0 | 0 = kwin-style edge refraction, 1 = refraction toward the window center |
+| `edge-thickness` | 0.15 | Width of the refracting edge, as a fraction of the window size |
+| `edge-padding` | 0 | Non-xray only: also sample content just outside the window |
+| `fringing` | 0.3 | RGB color split at the edges |
+| `edge-lighting` | 1.0 | Blends background colors into the edges |
+| `glow-weight` | 0.08 | Edge glow and highlight strength |
+| `lens-distortion` | 0.5 | Dome magnification in the middle of the window |
+| `refraction-dilute` | 0 | Above 0: softer averaged refraction instead of the modes above |
+| `dilute-strength` | 0 | Strength for dilute mode |
+| `dilute-fringing` | 0 | Color split for dilute mode |
+| `brightness` | 1.0 | Multiplies the glass color (0–1) |
+| `contrast` | 1.0 | 1 = unchanged, lower = flatter |
+| `saturation` | 0.85 | 1 = unchanged, lower = grayer |
+| `vibrancy` | 0.12 | Boosts already-colorful areas |
+| `adaptive-dim` | 0 | Darkens bright backgrounds |
+| `adaptive-boost` | 0 | Lightens dark backgrounds |
 
 ## Warnings
-- Tested in the 26.04 version
-- newer versions may conflict with this.
-- Vibe coded project so expect weirdly behavior.
-  
+
+- Only builds against niri 26.04 (`49fc611`).
+- Vibe-coded project: expect weird behavior.
