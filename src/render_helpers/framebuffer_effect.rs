@@ -16,7 +16,7 @@ use smithay::utils::{Buffer, Logical, Physical, Rectangle, Scale, Transform};
 use crate::backend::tty::{TtyFrame, TtyRenderer, TtyRendererError};
 use crate::render_helpers::background_effect::RenderParams;
 use crate::render_helpers::blur::{Blur, BlurOptions};
-use crate::render_helpers::liquid_glass::LiquidGlassOptions;
+use crate::render_helpers::liquid_glass;
 use crate::render_helpers::renderer::AsGlesFrame as _;
 use crate::render_helpers::shaders::{mat3_uniform, Shaders};
 use crate::utils::region::TransformedRegion;
@@ -39,8 +39,7 @@ pub struct FramebufferEffectElement {
     blur_options: Option<BlurOptions>,
     noise: f32,
     saturation: f32,
-    liquid_glass: Option<LiquidGlassOptions>,
-    padding_pixels: f32,
+    liquid_glass: Option<niri_config::LiquidGlass>,
 }
 
 #[derive(Debug)]
@@ -71,8 +70,7 @@ impl FramebufferEffect {
         blur_options: Option<BlurOptions>,
         noise: f32,
         saturation: f32,
-        liquid_glass: Option<LiquidGlassOptions>,
-        padding_pixels: f32,
+        liquid_glass: Option<niri_config::LiquidGlass>,
     ) -> FramebufferEffectElement {
         let (clip_geo, corner_radius) = params
             .clip
@@ -95,7 +93,6 @@ impl FramebufferEffect {
             noise,
             saturation,
             liquid_glass,
-            padding_pixels,
         }
     }
 }
@@ -131,69 +128,8 @@ impl FramebufferEffectElement {
             Uniform::new("noise", self.noise),
             Uniform::new("saturation", self.saturation),
             Uniform::new("bg_color", [0f32, 0., 0., 0.]),
-            Uniform::new("lg_padding_pixels", self.padding_pixels),
         ];
-
-        if let Some(lg) = &self.liquid_glass {
-            uniforms.extend([
-                Uniform::new("lg_refraction_strength", lg.refraction_strength as f32),
-                Uniform::new("lg_power_factor", lg.power_factor as f32),
-                Uniform::new("lg_refraction_a", lg.refraction_a as f32),
-                Uniform::new("lg_refraction_b", lg.refraction_b as f32),
-                Uniform::new("lg_refraction_c", lg.refraction_c as f32),
-                Uniform::new("lg_refraction_d", lg.refraction_d as f32),
-                Uniform::new("lg_refraction_power", lg.refraction_power as f32),
-                Uniform::new("lg_physical_refraction", lg.physical_refraction as f32),
-                Uniform::new("lg_glow_weight", lg.glow_weight as f32),
-                Uniform::new("lg_glow_bias", lg.glow_bias as f32),
-                Uniform::new("lg_glow_edge0", lg.glow_edge0 as f32),
-                Uniform::new("lg_glow_edge1", lg.glow_edge1 as f32),
-                Uniform::new("lg_edge_lighting", lg.edge_lighting as f32),
-                Uniform::new("lg_fringing", lg.fringing as f32),
-                Uniform::new("lg_refraction_dilute", lg.refraction_dilute as f32),
-                Uniform::new("lg_dilute_strength", lg.dilute_strength as f32),
-                Uniform::new("lg_dilute_fringing", lg.dilute_fringing as f32),
-                Uniform::new("lg_physical_refraction", lg.physical_refraction as f32),
-                Uniform::new("lg_lens_distortion", lg.lens_distortion as f32),
-                Uniform::new("lg_brightness", lg.brightness as f32),
-                Uniform::new("lg_contrast", lg.contrast as f32),
-                Uniform::new("lg_saturation", lg.saturation as f32),
-                Uniform::new("lg_vibrancy", lg.vibrancy as f32),
-                Uniform::new("lg_adaptive_dim", lg.adaptive_dim as f32),
-                Uniform::new("lg_adaptive_boost", lg.adaptive_boost as f32),
-                Uniform::new("lg_edge_thickness", lg.edge_thickness as f32),
-            ]);
-        } else {
-            uniforms.extend([
-                Uniform::new("lg_refraction_strength", 0.0f32),
-                Uniform::new("lg_power_factor", 0.0f32),
-                Uniform::new("lg_refraction_a", 0.0f32),
-                Uniform::new("lg_refraction_b", 0.0f32),
-                Uniform::new("lg_refraction_c", 0.0f32),
-                Uniform::new("lg_refraction_d", 0.0f32),
-                Uniform::new("lg_refraction_power", 0.0f32),
-                Uniform::new("lg_physical_refraction", 0.0f32),
-                Uniform::new("lg_glow_weight", 0.0f32),
-                Uniform::new("lg_glow_bias", 0.0f32),
-                Uniform::new("lg_glow_edge0", 0.0f32),
-                Uniform::new("lg_glow_edge1", 0.0f32),
-                Uniform::new("lg_edge_lighting", 0.0f32),
-                Uniform::new("lg_fringing", 0.0f32),
-                Uniform::new("lg_refraction_dilute", 0.0f32),
-                Uniform::new("lg_dilute_strength", 0.0f32),
-                Uniform::new("lg_dilute_fringing", 0.0f32),
-                Uniform::new("lg_physical_refraction", 0.0f32),
-                Uniform::new("lg_lens_distortion", 0.0f32),
-                Uniform::new("lg_brightness", 0.0f32),
-                Uniform::new("lg_contrast", 0.0f32),
-                Uniform::new("lg_saturation", 0.0f32),
-                Uniform::new("lg_vibrancy", 0.0f32),
-                Uniform::new("lg_adaptive_dim", 0.0f32),
-                Uniform::new("lg_adaptive_boost", 0.0f32),
-                Uniform::new("lg_edge_thickness", 0.15f32),
-            ]);
-        }
-
+        uniforms.extend(liquid_glass::uniforms(self.liquid_glass.as_ref()));
         uniforms
     }
 }

@@ -32,16 +32,12 @@
 
 ### Rust (rendering)
 
-- `src/render_helpers/liquid_glass.rs` - `LiquidGlassOptions` struct with effect parameters
+- `src/render_helpers/liquid_glass.rs` - Liquid glass shader uniforms (names and values)
 - `src/render_helpers/background_effect.rs` - Liquid glass integration with background effect
 - `src/render_helpers/framebuffer_effect.rs` - Uniform passing to shader (windows)
 - `src/render_helpers/xray.rs` - Uniform passing to shader (xray)
 - `src/render_helpers/shaders/mod.rs` - Uniform registration during shader compilation
 - `src/render_helpers/mod.rs` - Module declaration for liquid_glass
-
-### Niri Config
-
-- `config.kdl` - Example configuration with liquid-glass enabled
 
 ## How to Apply
 
@@ -99,12 +95,13 @@ Clone the official repo and this one and run the install script:
 
 ```bash
 git clone https://github.com/niri-wm/niri
+git -C niri checkout 49fc6117fd6c043adaa2ead316b82db5ed735d36
 git clone https://github.com/zaroutt/Niri-glass
 cd Niri-glass
 ```
 
 ```bash
-./install.sh 
+./install.sh ../niri
 ```
 This will create a new wayland session. You will be able to choose in your login manager.
 
@@ -112,7 +109,7 @@ This will create a new wayland session. You will be able to choose in your login
 
 1. Copy files to your niri `src/` directory
 2. Run `cargo build --release` in the niri source
-3. Copy `target/release/niri` to `/usr/bin/local/niri-glass` (requires sudo)
+3. Copy `target/release/niri` to `/usr/local/bin/niri-glass` (requires sudo)
 
 ## Configuration
 

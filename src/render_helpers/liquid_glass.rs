@@ -1,63 +1,65 @@
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct LiquidGlassOptions {
-    pub refraction_strength: f64,
-    pub power_factor: f64,
-    pub refraction_a: f64,
-    pub refraction_b: f64,
-    pub refraction_c: f64,
-    pub refraction_d: f64,
-    pub refraction_power: f64,
-    pub glow_weight: f64,
-    pub glow_bias: f64,
-    pub glow_edge0: f64,
-    pub glow_edge1: f64,
-    pub edge_lighting: f64,
-    pub fringing: f64,
-    pub refraction_dilute: f64,
-    pub dilute_strength: f64,
-    pub dilute_fringing: f64,
-    pub physical_refraction: f64,
-    pub lens_distortion: f64,
-    pub brightness: f64,
-    pub contrast: f64,
-    pub saturation: f64,
-    pub vibrancy: f64,
-    pub adaptive_dim: f64,
-    pub adaptive_boost: f64,
-    pub edge_thickness: f64,
-    pub edge_padding: f64,
+use niri_config::LiquidGlass;
+use smithay::backend::renderer::gles::{Uniform, UniformName, UniformType};
+
+/// Shader uniform names, in the same order as the values in `uniforms()`.
+const NAMES: [&str; 18] = [
+    "lg_refraction_strength",
+    "lg_power_factor",
+    "lg_refraction_power",
+    "lg_physical_refraction",
+    "lg_glow_weight",
+    "lg_edge_lighting",
+    "lg_fringing",
+    "lg_refraction_dilute",
+    "lg_dilute_strength",
+    "lg_dilute_fringing",
+    "lg_lens_distortion",
+    "lg_brightness",
+    "lg_contrast",
+    "lg_saturation",
+    "lg_vibrancy",
+    "lg_adaptive_dim",
+    "lg_adaptive_boost",
+    "lg_edge_thickness",
+];
+
+pub fn uniform_names() -> impl Iterator<Item = UniformName<'static>> {
+    NAMES
+        .into_iter()
+        .map(|name| UniformName::new(name, UniformType::_1f))
 }
 
-impl From<niri_config::LiquidGlass> for LiquidGlassOptions {
-    fn from(config: niri_config::LiquidGlass) -> Self {
-        Self {
-            refraction_strength: config.refraction_strength,
-            power_factor: config.power_factor,
-            refraction_a: config.refraction_a,
-            refraction_b: config.refraction_b,
-            refraction_c: config.refraction_c,
-            refraction_d: config.refraction_d,
-            refraction_power: config.refraction_power,
-            glow_weight: config.glow_weight,
-            glow_bias: config.glow_bias,
-            glow_edge0: config.glow_edge0,
-            glow_edge1: config.glow_edge1,
-            edge_lighting: config.edge_lighting,
-            fringing: config.fringing,
-            refraction_dilute: config.refraction_dilute,
-            dilute_strength: config.dilute_strength,
-            dilute_fringing: config.dilute_fringing,
-            physical_refraction: config.physical_refraction,
-            lens_distortion: config.lens_distortion,
-            brightness: config.brightness,
-            contrast: config.contrast,
-            saturation: config.saturation,
-            vibrancy: config.vibrancy,
-            adaptive_dim: config.adaptive_dim,
-            adaptive_boost: config.adaptive_boost,
-            edge_thickness: config.edge_thickness,
-            edge_padding: config.edge_padding,
-        }
-    }
+pub fn uniforms(lg: Option<&LiquidGlass>) -> Vec<Uniform<'static>> {
+    // The shader skips the whole effect when strength is 0, so the rest can stay unset.
+    let Some(lg) = lg else {
+        return vec![Uniform::new("lg_refraction_strength", 0f32)];
+    };
+
+    // Typed length makes the compiler catch a value without a name (or the reverse).
+    let values: [f64; NAMES.len()] = [
+        lg.refraction_strength,
+        lg.power_factor,
+        lg.refraction_power,
+        lg.physical_refraction,
+        lg.glow_weight,
+        lg.edge_lighting,
+        lg.fringing,
+        lg.refraction_dilute,
+        lg.dilute_strength,
+        lg.dilute_fringing,
+        lg.lens_distortion,
+        lg.brightness,
+        lg.contrast,
+        lg.saturation,
+        lg.vibrancy,
+        lg.adaptive_dim,
+        lg.adaptive_boost,
+        lg.edge_thickness,
+    ];
+
+    NAMES
+        .into_iter()
+        .zip(values)
+        .map(|(name, value)| Uniform::new(name, value as f32))
+        .collect()
 }
-// force rebuild

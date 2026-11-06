@@ -29,15 +29,8 @@ uniform mat3 input_to_geo;
 // Liquid glass uniforms
 uniform float lg_refraction_strength;
 uniform float lg_power_factor;
-uniform float lg_refraction_a;
-uniform float lg_refraction_b;
-uniform float lg_refraction_c;
-uniform float lg_refraction_d;
 uniform float lg_refraction_power;
 uniform float lg_glow_weight;
-uniform float lg_glow_bias;
-uniform float lg_glow_edge0;
-uniform float lg_glow_edge1;
 uniform float lg_edge_lighting;
 uniform float lg_fringing;
 // Refraction mode: 0.0 = kwin (SDF gradient, pode inverter em cantos)
@@ -56,11 +49,18 @@ uniform float lg_vibrancy;
 uniform float lg_adaptive_dim;
 uniform float lg_adaptive_boost;
 uniform float lg_edge_thickness;
-uniform float lg_padding_pixels;
 
 float niri_rounding_alpha(vec2 coords, vec2 size, vec4 corner_radius);
 vec4 postprocess(vec4 color);
-vec2 refractionDir(vec2 uv);
+vec2 refractionDir(vec2 position);
+
+// Turns an offset in window UV (0..1 across the window) into an offset in texture UV.
+// They differ for xray, whose texture is the whole screen, and for edge padding.
+vec2 geoToTex(vec2 d) {
+    mat2 m = mat2(input_to_geo[0].xy, input_to_geo[1].xy);
+    float det = m[0][0] * m[1][1] - m[1][0] * m[0][1];
+    return mat2(m[1][1], -m[0][1], -m[1][0], m[0][0]) * d / det;
+}
 
 // ============================================================================
 // Liquid Glass effect -- faithful port of kwin-effects-glass
@@ -126,7 +126,7 @@ GlassFragment glassRefraction(vec2 uv_tex, vec2 uv_min, vec2 uv_max, vec2 positi
     vec2 kwinOffset = kwinNormal * kwinStrength;
 
     // --- HyprGlass mode (center direction) ---
-    vec2 inwardDir = refractionDir(uv_tex);
+    vec2 inwardDir = refractionDir(position);
     float hyprPx = refractionStrength * 50.0 * (lg_edge_thickness / 0.15);
     float hyprMag = min(edgeProximity * hyprPx, minHalfSize * 0.15);
     vec2 hyprOffset = inwardDir * hyprMag * uvScale;
@@ -138,6 +138,7 @@ GlassFragment glassRefraction(vec2 uv_tex, vec2 uv_min, vec2 uv_max, vec2 positi
     // Fix Y-axis: position space has Y inverted relative to UV space
     // (see position.y = -position.y in glass_effect).
     baseOffset.y = -baseOffset.y;
+    baseOffset = geoToTex(baseOffset);
 
     // Glass normal for outline effects
     vec2 normalXY = mix(kwinNormal, inwardDir, modeMix) * edgeProximity * refractionStrength * 0.5;
@@ -190,7 +191,7 @@ GlassFragment glassRefraction(vec2 uv_tex, vec2 uv_min, vec2 uv_max, vec2 positi
 // Snell's law refraction -- HyprGlass-style direction with IOR magnitude
 GlassFragment snellsRefraction(vec2 uv_tex, vec2 uv_min, vec2 uv_max, vec2 position, vec2 halfBlurSize, vec4 cornerRadius, float minHalfSize, float dist, float edgeFactor, float concaveFactor, float refractionStrength, float refractionBevelIntensity, float refractionOffsetStrength, float refractionRGBFringing)
 {
-    vec2 inwardDir = refractionDir(uv_tex);
+    vec2 inwardDir = refractionDir(position);
     float bezelWidthPx = max(minHalfSize * lg_edge_thickness, 8.0 * niri_scale);
     float edgeProximity = exp(dist / bezelWidthPx);
     float bandWidth = max(minHalfSize * lg_edge_thickness, 4.0);
@@ -204,6 +205,7 @@ GlassFragment snellsRefraction(vec2 uv_tex, vec2 uv_min, vec2 uv_max, vec2 posit
 
     // Fix Y-axis: position space has Y inverted relative to UV space.
     baseOffset.y = -baseOffset.y;
+    baseOffset = geoToTex(baseOffset);
     float eps = min(bandWidth * 0.75, min(min(cornerRadius.x, cornerRadius.y), min(cornerRadius.z, cornerRadius.w)) * 0.6);
     float dxp = roundedRectangleDist(position + vec2(eps, 0.0), halfBlurSize, cornerRadius);
     float dxn = roundedRectangleDist(position - vec2(eps, 0.0), halfBlurSize, cornerRadius);
@@ -248,6 +250,7 @@ GlassFragment diluteRefraction(vec2 uv_tex, vec2 uv_min, vec2 uv_max, vec2 posit
 
     // Fix Y-axis: position space has Y inverted relative to UV space.
     offset.y = -offset.y;
+    offset = geoToTex(offset);
     vec2 c0 = clamp(uv_tex + offset * 0.25, uv_min, uv_max);
     vec2 c1 = clamp(uv_tex + offset * 0.50, uv_min, uv_max);
     vec2 c2 = clamp(uv_tex + offset * 0.75, uv_min, uv_max);
@@ -265,9 +268,10 @@ GlassFragment diluteRefraction(vec2 uv_tex, vec2 uv_min, vec2 uv_max, vec2 posit
     return GlassFragment(color, dist, edgeFactor, concaveFactor, vec3(0.0, 0.0, 1.0), 1.0);
 }
 
-// HyprGlass-inspired: refraction direction toward center
-vec2 refractionDir(vec2 uv) {
-    vec2 toCenterPx = (vec2(0.5) - uv) * geo_size;
+// HyprGlass-inspired: refraction direction toward the window center, in window UV orientation
+// (position has Y flipped, see glass_effect).
+vec2 refractionDir(vec2 position) {
+    vec2 toCenterPx = vec2(-position.x, position.y);
     float len = length(toCenterPx);
     return len > 0.1 ? toCenterPx / len : vec2(0.0);
 }
@@ -452,7 +456,7 @@ vec4 glass_effect(vec2 uv_tex, vec2 windowUV, vec4 baseColor, vec2 blurSize, vec
     }
 
     // HyprGlass-style center dome lens
-    vec2 domeUV = applyDomeLens(uv_tex, lg_lens_distortion, edgeProximity);
+    vec2 domeUV = geoToTex(applyDomeLens(windowUV, lg_lens_distortion, edgeProximity));
     if (length(domeUV) > 0.001) {
         vec2 maxOffPos = vec2(1.0) - uv_tex;
         vec2 maxOffNeg = uv_tex;
@@ -481,14 +485,8 @@ void main() {
     color = vec4(color.rgb, 1.0);
 #endif
 
-    // Convert expanded UV to window UV when padding is active
-    // geo_size is the EXPANDED size (original window + 2*padding).
-    // coords_geo is [0,1] within the expanded area.
-    // We need windowUV = [0,1] within the ORIGINAL window.
+    // Window UV, 0..1 across the window. With edge padding the texture is larger than this.
     vec2 windowUV = coords_geo.xy;
-    if (lg_padding_pixels > 0.5) {
-        windowUV = (coords_geo.xy * geo_size - vec2(lg_padding_pixels)) / (geo_size - vec2(lg_padding_pixels * 2.0));
-    }
 
     // Binary mask — clip to window bounds (not expanded)
     float insideGeo = step(0.0, windowUV.x) * step(windowUV.x, 1.0)

@@ -1059,15 +1059,8 @@ impl MergeWith<BlurPart> for Blur {
 pub struct LiquidGlass {
     pub refraction_strength: f64,
     pub power_factor: f64,
-    pub refraction_a: f64,
-    pub refraction_b: f64,
-    pub refraction_c: f64,
-    pub refraction_d: f64,
     pub refraction_power: f64,
     pub glow_weight: f64,
-    pub glow_bias: f64,
-    pub glow_edge0: f64,
-    pub glow_edge1: f64,
     pub edge_lighting: f64,
     pub fringing: f64,
     pub refraction_dilute: f64,
@@ -1090,15 +1083,8 @@ impl Default for LiquidGlass {
         Self {
             refraction_strength: 1.0,
             power_factor: 3.0,
-            refraction_a: 0.04,
-            refraction_b: 5.0,
-            refraction_c: 5.0,
-            refraction_d: 8.0,
             refraction_power: 0.6,
             glow_weight: 0.08,
-            glow_bias: 0.0,
-            glow_edge0: 0.3,
-            glow_edge1: 0.9,
             edge_lighting: 1.0,
             fringing: 0.3,
             refraction_dilute: 0.0,
@@ -1125,23 +1111,9 @@ pub struct LiquidGlassPart {
     #[knuffel(child, unwrap(argument))]
     pub power_factor: Option<FloatOrInt<1, 10>>,
     #[knuffel(child, unwrap(argument))]
-    pub refraction_a: Option<FloatOrInt<0, 100>>,
-    #[knuffel(child, unwrap(argument))]
-    pub refraction_b: Option<FloatOrInt<0, 100>>,
-    #[knuffel(child, unwrap(argument))]
-    pub refraction_c: Option<FloatOrInt<0, 100>>,
-    #[knuffel(child, unwrap(argument))]
-    pub refraction_d: Option<FloatOrInt<0, 100>>,
-    #[knuffel(child, unwrap(argument))]
     pub refraction_power: Option<FloatOrInt<0, 100>>,
     #[knuffel(child, unwrap(argument))]
     pub glow_weight: Option<FloatOrInt<-100, 100>>,
-    #[knuffel(child, unwrap(argument))]
-    pub glow_bias: Option<FloatOrInt<-100, 100>>,
-    #[knuffel(child, unwrap(argument))]
-    pub glow_edge0: Option<FloatOrInt<-100, 100>>,
-    #[knuffel(child, unwrap(argument))]
-    pub glow_edge1: Option<FloatOrInt<-100, 100>>,
     #[knuffel(child, unwrap(argument))]
     pub edge_lighting: Option<FloatOrInt<0, 100>>,
     #[knuffel(child, unwrap(argument))]
@@ -1180,15 +1152,8 @@ impl MergeWith<LiquidGlassPart> for LiquidGlass {
             (self, part),
             refraction_strength,
             power_factor,
-            refraction_a,
-            refraction_b,
-            refraction_c,
-            refraction_d,
             refraction_power,
             glow_weight,
-            glow_bias,
-            glow_edge0,
-            glow_edge1,
             edge_lighting,
             fringing,
             refraction_dilute,

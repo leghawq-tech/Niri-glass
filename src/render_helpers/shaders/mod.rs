@@ -9,6 +9,7 @@ use smithay::backend::renderer::gles::{
 use super::renderer::NiriRenderer;
 use super::shader_element::ShaderProgram;
 use crate::render_helpers::blur::BlurProgram;
+use crate::render_helpers::liquid_glass;
 
 pub struct Shaders {
     pub border: Option<ShaderProgram>,
@@ -97,35 +98,6 @@ impl Shaders {
                     UniformName::new("geo_size", UniformType::_2f),
                     UniformName::new("corner_radius", UniformType::_4f),
                     UniformName::new("input_to_geo", UniformType::Matrix3x3),
-                    UniformName::new("lg_refraction_strength", UniformType::_1f),
-                    UniformName::new("lg_power_factor", UniformType::_1f),
-                    UniformName::new("lg_refraction_a", UniformType::_1f),
-                    UniformName::new("lg_refraction_b", UniformType::_1f),
-                    UniformName::new("lg_refraction_c", UniformType::_1f),
-                    UniformName::new("lg_refraction_d", UniformType::_1f),
-                    UniformName::new("lg_refraction_power", UniformType::_1f),
-                    UniformName::new("lg_physical_refraction", UniformType::_1f),
-                    UniformName::new("lg_glow_weight", UniformType::_1f),
-                    UniformName::new("lg_glow_bias", UniformType::_1f),
-                    UniformName::new("lg_glow_edge0", UniformType::_1f),
-                    UniformName::new("lg_glow_edge1", UniformType::_1f),
-                    UniformName::new("lg_edge_lighting", UniformType::_1f),
-                    UniformName::new("lg_fringing", UniformType::_1f),
-                    UniformName::new("lg_refraction_dilute", UniformType::_1f),
-                    UniformName::new("lg_dilute_strength", UniformType::_1f),
-                    UniformName::new("lg_dilute_fringing", UniformType::_1f),
-                    UniformName::new("lg_dilute_strength", UniformType::_1f),
-                    UniformName::new("lg_dilute_fringing", UniformType::_1f),
-                    UniformName::new("lg_physical_refraction", UniformType::_1f),
-                    UniformName::new("lg_lens_distortion", UniformType::_1f),
-                    UniformName::new("lg_brightness", UniformType::_1f),
-                    UniformName::new("lg_contrast", UniformType::_1f),
-                    UniformName::new("lg_saturation", UniformType::_1f),
-                    UniformName::new("lg_vibrancy", UniformType::_1f),
-                    UniformName::new("lg_adaptive_dim", UniformType::_1f),
-                    UniformName::new("lg_adaptive_boost", UniformType::_1f),
-                    UniformName::new("lg_edge_thickness", UniformType::_1f),
-                    UniformName::new("lg_padding_pixels", UniformType::_1f),
                 ],
             )
             .map_err(|err| {
@@ -148,36 +120,10 @@ impl Shaders {
                     UniformName::new("noise", UniformType::_1f),
                     UniformName::new("saturation", UniformType::_1f),
                     UniformName::new("bg_color", UniformType::_4f),
-                    UniformName::new("lg_refraction_strength", UniformType::_1f),
-                    UniformName::new("lg_power_factor", UniformType::_1f),
-                    UniformName::new("lg_refraction_a", UniformType::_1f),
-                    UniformName::new("lg_refraction_b", UniformType::_1f),
-                    UniformName::new("lg_refraction_c", UniformType::_1f),
-                    UniformName::new("lg_refraction_d", UniformType::_1f),
-                    UniformName::new("lg_refraction_power", UniformType::_1f),
-                    UniformName::new("lg_physical_refraction", UniformType::_1f),
-                    UniformName::new("lg_glow_weight", UniformType::_1f),
-                    UniformName::new("lg_glow_bias", UniformType::_1f),
-                    UniformName::new("lg_glow_edge0", UniformType::_1f),
-                    UniformName::new("lg_glow_edge1", UniformType::_1f),
-                    UniformName::new("lg_edge_lighting", UniformType::_1f),
-                    UniformName::new("lg_fringing", UniformType::_1f),
-                    UniformName::new("lg_refraction_dilute", UniformType::_1f),
-                    UniformName::new("lg_dilute_strength", UniformType::_1f),
-                    UniformName::new("lg_dilute_fringing", UniformType::_1f),
-                    UniformName::new("lg_dilute_strength", UniformType::_1f),
-                    UniformName::new("lg_dilute_fringing", UniformType::_1f),
-                    UniformName::new("lg_physical_refraction", UniformType::_1f),
-                    UniformName::new("lg_lens_distortion", UniformType::_1f),
-                    UniformName::new("lg_brightness", UniformType::_1f),
-                    UniformName::new("lg_contrast", UniformType::_1f),
-                    UniformName::new("lg_saturation", UniformType::_1f),
-                    UniformName::new("lg_vibrancy", UniformType::_1f),
-                    UniformName::new("lg_adaptive_dim", UniformType::_1f),
-                    UniformName::new("lg_adaptive_boost", UniformType::_1f),
-                    UniformName::new("lg_edge_thickness", UniformType::_1f),
-                    UniformName::new("lg_padding_pixels", UniformType::_1f),
-                ],
+                ]
+                .into_iter()
+                .chain(liquid_glass::uniform_names())
+                .collect::<Vec<_>>(),
             )
             .map_err(|err| {
                 warn!("error compiling postprocess_and_clip shader: {err:?}");

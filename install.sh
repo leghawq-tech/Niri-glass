@@ -9,6 +9,14 @@ if [ ! -d "$NIRI_SRC" ]; then
   exit 1
 fi
 
+# The overlay replaces whole files, so it only fits this niri revision (same pin as flake.nix).
+NIRI_REV=49fc6117fd6c043adaa2ead316b82db5ed735d36
+if [ "$(git -C "$NIRI_SRC" rev-parse HEAD)" != "$NIRI_REV" ]; then
+  echo "Error: $NIRI_SRC is not at niri $NIRI_REV (26.04)."
+  echo "Run: git -C \"$NIRI_SRC\" checkout $NIRI_REV"
+  exit 1
+fi
+
 echo "Copying files to $NIRI_SRC..."
 cp src/render_helpers/liquid_glass.rs "$NIRI_SRC/src/render_helpers/"
 cp src/render_helpers/shaders/clipped_surface.frag "$NIRI_SRC/src/render_helpers/shaders/"
